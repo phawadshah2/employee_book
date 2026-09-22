@@ -9,7 +9,7 @@ class EmployeeListPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Employess'),
+        title: const Text('Employees'),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {

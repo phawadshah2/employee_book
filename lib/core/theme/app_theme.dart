@@ -6,11 +6,16 @@ abstract final class AppTheme {
   static final ThemeData dark = _build(Brightness.dark);
 
   static ThemeData _build(Brightness brightness) {
+    final colors = ColorScheme.fromSeed(
+      seedColor: _seedColor,
+      brightness: brightness,
+    );
     return ThemeData(
       brightness: brightness,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: _seedColor,
-        brightness: brightness,
+      colorScheme: colors,
+      appBarTheme: AppBarTheme(
+        backgroundColor: colors.primary,
+        foregroundColor: colors.onPrimary,
       ),
     );
   }

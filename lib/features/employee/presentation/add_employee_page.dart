@@ -8,11 +8,9 @@ class AddEmployeePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
+        title: const Text('Add Employee'),
         leading: IconButton(
-          onPressed: () {
-            context.pop();
-          },
+          onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_back_ios_new),
         ),
       ),
