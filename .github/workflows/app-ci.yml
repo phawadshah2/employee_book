@@ -1,0 +1,50 @@
+name: app-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'app/**'
+      - '.github/workflows/app-ci.yml'
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  analyze-and-test:
+    name: Analyze & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read Flutter version from .fvmrc
+        id: fvm
+        run: echo "version=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.fvm.outputs.version }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --set-exit-if-changed .
+
+      - name: Verify generated code is committed and fresh
+        run: |
+          dart run build_runner build
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Generated code is stale or uncommitted. Run 'fvm dart run build_runner build' and commit the result."
+            git status --porcelain
+            exit 1
+          fi
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      # - name: Test
+      #   run: flutter test
