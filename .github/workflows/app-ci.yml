@@ -8,10 +8,6 @@ on:
       - main
       - develop
 
-defaults:
-  run:
-    working-directory: app
-
 jobs:
   analyze-and-test:
     name: Analyze & test
