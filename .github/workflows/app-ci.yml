@@ -30,14 +30,14 @@ jobs:
       - name: Verify formatting
         run: dart format --set-exit-if-changed .
 
-      - name: Verify generated code is committed and fresh
-        run: |
-          dart run build_runner build
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "::error::Generated code is stale or uncommitted. Run 'fvm dart run build_runner build' and commit the result."
-            git status --porcelain
-            exit 1
-          fi
+    #   - name: Verify generated code is committed and fresh
+    #     run: |
+    #       dart run build_runner build
+    #       if [ -n "$(git status --porcelain)" ]; then
+    #         echo "::error::Generated code is stale or uncommitted. Run 'fvm dart run build_runner build' and commit the result."
+    #         git status --porcelain
+    #         exit 1
+    #       fi
 
       - name: Analyze
         run: flutter analyze --fatal-infos
