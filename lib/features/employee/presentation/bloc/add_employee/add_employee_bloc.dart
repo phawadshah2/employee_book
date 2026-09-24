@@ -52,12 +52,8 @@ class AddEmployeeBloc extends Bloc<AddEmployeeEvent, AddEmployeeState> {
       await _addEmployee(input);
       emit(state.copyWith(status: AddEmployeeStatus.success));
     } on InvalidEmployeeInput {
-      // Defensive: use case re-validates independently of the Bloc.
-      // Should be unreachable in practice since the Bloc already
-      // validated above, but keeps the domain layer trustworthy
-      // if this use case is ever called from elsewhere.
       emit(state.copyWith(status: AddEmployeeStatus.editing));
-    } catch (error, stackTrace) {
+    } on Object catch (error, stackTrace) {
       addError(error, stackTrace);
       emit(state.copyWith(status: AddEmployeeStatus.failure));
     }

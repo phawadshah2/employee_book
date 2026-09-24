@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:employee_book/features/employee/domain/entities/employee_input.dart';
 
 enum EmployeeField { username, firstName, lastName, email }
@@ -61,7 +59,7 @@ abstract final class EmployeeValidation {
 
     return Map.unmodifiable({
       for (final entry in results.entries)
-        if (entry.value != null) entry.key: entry.value!,
+        if (entry.value != null) entry.key: entry.value,
     });
   }
 }
