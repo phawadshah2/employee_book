@@ -39,6 +39,11 @@ abstract final class AppTheme {
           borderSide: BorderSide(color: colors.error, width: 2),
         ),
       ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          shape: const RoundedRectangleBorder(borderRadius: borderRadius),
+        ),
+      ),
     );
   }
 }
