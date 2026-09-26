@@ -30,9 +30,9 @@ class AddEmployeePage extends StatelessWidget {
                   duration: Duration(seconds: 2),
                 ),
               );
-            // context.pop();
             // clear the fields and state
             context.read<AddEmployeeBloc>().add(const AddEmployeeReset());
+            context.pop();
           case AddEmployeeStatus.failure:
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()
