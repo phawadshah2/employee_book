@@ -3,6 +3,7 @@ import 'package:employee_book/features/employees/domain/validation/employee_vali
 import 'package:employee_book/features/employees/presentation/bloc/add_employee/add_employee_event.dart';
 import 'package:employee_book/features/employees/presentation/bloc/add_employee/add_employee_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:sqlite3/wasm.dart';
 
 // add_employee_bloc.dart
 class AddEmployeeBloc extends Bloc<AddEmployeeEvent, AddEmployeeState> {
@@ -55,7 +56,7 @@ class AddEmployeeBloc extends Bloc<AddEmployeeEvent, AddEmployeeState> {
     );
 
     try {
-      await _addEmployee(input);
+      final result = await _addEmployee(input);
       emit(state.copyWith(status: AddEmployeeStatus.success));
     } on Object catch (error, stackTrace) {
       addError(error, stackTrace);
