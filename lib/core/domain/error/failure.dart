@@ -9,3 +9,7 @@ final class ValidationFailure extends Failure {
 final class StorageFailure extends Failure {
   const StorageFailure();
 }
+
+final class EmployeeNotFoundFailure extends Failure {
+  const EmployeeNotFoundFailure();
+}

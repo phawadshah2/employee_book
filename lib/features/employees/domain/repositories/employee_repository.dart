@@ -5,4 +5,5 @@ import 'package:employee_book/features/employees/domain/entities/employee_input.
 abstract interface class EmployeeRepository {
   Future<Result<void>> addEmployee(EmployeeInput input);
   Future<Result<List<Employee>>> getEmployees();
+  Future<Result<void>> deleteEmployee(int id);
 }
