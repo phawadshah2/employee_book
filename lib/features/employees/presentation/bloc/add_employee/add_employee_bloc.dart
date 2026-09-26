@@ -1,3 +1,4 @@
+import 'package:employee_book/core/domain/result/result.dart';
 import 'package:employee_book/features/employees/domain/usecases/add_employee.dart';
 import 'package:employee_book/features/employees/domain/validation/employee_validation.dart';
 import 'package:employee_book/features/employees/presentation/bloc/add_employee/add_employee_event.dart';
@@ -40,13 +41,19 @@ class AddEmployeeBloc extends Bloc<AddEmployeeEvent, AddEmployeeState> {
     Emitter<AddEmployeeState> emit,
   ) async {
     if (state.isLocked) return;
+    final input = state.input.normalized();
+    final errors = EmployeeValidation.validate(input);
 
-    if (state.errors.isNotEmpty) {
-      emit(state.copyWith(showValidationErrors: true));
+    if (errors.isNotEmpty) {
+      emit(
+        state.copyWith(
+          status: AddEmployeeStatus.editing,
+          showValidationErrors: true,
+        ),
+      );
       return;
     }
 
-    final input = state.input;
     emit(
       state.copyWith(
         status: AddEmployeeStatus.submitting,
@@ -55,8 +62,13 @@ class AddEmployeeBloc extends Bloc<AddEmployeeEvent, AddEmployeeState> {
     );
 
     try {
-      await _addEmployee(input);
-      emit(state.copyWith(status: AddEmployeeStatus.success));
+      final result = await _addEmployee(input);
+      switch (result) {
+        case Success<void>():
+          emit(state.copyWith(status: AddEmployeeStatus.success));
+        case FailureResult<void>():
+          emit(state.copyWith(status: AddEmployeeStatus.failure));
+      }
     } on Object catch (error, stackTrace) {
       addError(error, stackTrace);
       emit(state.copyWith(status: AddEmployeeStatus.failure));
