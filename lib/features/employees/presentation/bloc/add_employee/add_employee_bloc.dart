@@ -1,7 +1,7 @@
-import 'package:employee_book/features/employee/domain/usecases/add_employee.dart';
-import 'package:employee_book/features/employee/domain/validation/employee_validation.dart';
-import 'package:employee_book/features/employee/presentation/bloc/add_employee/add_employee_event.dart';
-import 'package:employee_book/features/employee/presentation/bloc/add_employee/add_employee_state.dart';
+import 'package:employee_book/features/employees/domain/usecases/add_employee.dart';
+import 'package:employee_book/features/employees/domain/validation/employee_validation.dart';
+import 'package:employee_book/features/employees/presentation/bloc/add_employee/add_employee_event.dart';
+import 'package:employee_book/features/employees/presentation/bloc/add_employee/add_employee_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 // add_employee_bloc.dart
@@ -9,9 +9,15 @@ class AddEmployeeBloc extends Bloc<AddEmployeeEvent, AddEmployeeState> {
   AddEmployeeBloc(this._addEmployee) : super(const AddEmployeeState()) {
     on<EmployeeFieldChanged>(_onFieldChanged);
     on<AddEmployeeSubmitted>(_onSubmitted);
+    on<AddEmployeeReset>(_onReset);
   }
 
   final AddEmployee _addEmployee;
+
+  void _onReset(AddEmployeeReset event, Emitter<AddEmployeeState> emit) {
+    if (state.isSubmitting) return;
+    emit(AddEmployeeState(formRevision: state.formRevision + 1));
+  }
 
   void _onFieldChanged(
     EmployeeFieldChanged event,
@@ -51,8 +57,6 @@ class AddEmployeeBloc extends Bloc<AddEmployeeEvent, AddEmployeeState> {
     try {
       await _addEmployee(input);
       emit(state.copyWith(status: AddEmployeeStatus.success));
-    } on InvalidEmployeeInput {
-      emit(state.copyWith(status: AddEmployeeStatus.editing));
     } on Object catch (error, stackTrace) {
       addError(error, stackTrace);
       emit(state.copyWith(status: AddEmployeeStatus.failure));

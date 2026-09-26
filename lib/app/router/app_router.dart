@@ -1,7 +1,7 @@
-import 'package:employee_book/features/employee/domain/usecases/add_employee.dart';
-import 'package:employee_book/features/employee/presentation/add_employee_page.dart';
-import 'package:employee_book/features/employee/presentation/bloc/add_employee/add_employee_bloc.dart';
-import 'package:employee_book/features/employee/presentation/employee_list_page.dart';
+import 'package:employee_book/features/employees/domain/usecases/add_employee.dart';
+import 'package:employee_book/features/employees/presentation/add_employee_page.dart';
+import 'package:employee_book/features/employees/presentation/bloc/add_employee/add_employee_bloc.dart';
+import 'package:employee_book/features/employees/presentation/employee_list_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
