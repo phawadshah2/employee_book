@@ -2,7 +2,6 @@ import 'package:employee_book/core/data/local/database/app_database.dart';
 
 class EmployeeLocalDataSource {
   const EmployeeLocalDataSource(this._database);
-
   final AppDatabase _database;
 
   Future<int> insertEmployee({
@@ -22,5 +21,10 @@ class EmployeeLocalDataSource {
             email: email,
           ),
         );
+  }
+
+  Future<List<EmployeeRow>> getEmployees() async {
+    await Future<void>.delayed(const Duration(seconds: 2));
+    return await _database.select(_database.employees).get();
   }
 }
