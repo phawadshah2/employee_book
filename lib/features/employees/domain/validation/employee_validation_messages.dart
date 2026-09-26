@@ -1,4 +1,4 @@
-import 'package:employee_book/features/employee/domain/validation/employee_validation.dart';
+import 'package:employee_book/features/employees/domain/validation/employee_validation.dart';
 
 extension EmployeeValidationMessages on EmployeeValidationError {
   String get message => switch (this) {

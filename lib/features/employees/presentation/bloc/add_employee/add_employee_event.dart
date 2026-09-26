@@ -1,4 +1,4 @@
-import 'package:employee_book/features/employee/domain/validation/employee_validation.dart';
+import 'package:employee_book/features/employees/domain/validation/employee_validation.dart';
 
 sealed class AddEmployeeEvent {
   const AddEmployeeEvent();
@@ -13,4 +13,8 @@ final class EmployeeFieldChanged extends AddEmployeeEvent {
 
 final class AddEmployeeSubmitted extends AddEmployeeEvent {
   const AddEmployeeSubmitted();
+}
+
+final class AddEmployeeReset extends AddEmployeeEvent {
+  const AddEmployeeReset();
 }

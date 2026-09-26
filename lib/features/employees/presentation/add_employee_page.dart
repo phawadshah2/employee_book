@@ -1,10 +1,10 @@
 import 'dart:developer';
-import 'package:employee_book/features/employee/domain/validation/employee_validation.dart';
-import 'package:employee_book/features/employee/domain/validation/employee_validation_messages.dart';
-import 'package:employee_book/features/employee/presentation/bloc/add_employee/add_employee_bloc.dart';
-import 'package:employee_book/features/employee/presentation/bloc/add_employee/add_employee_event.dart';
-import 'package:employee_book/features/employee/presentation/bloc/add_employee/add_employee_state.dart';
-import 'package:employee_book/features/employee/presentation/widgets/text_form_field.dart';
+import 'package:employee_book/features/employees/domain/validation/employee_validation.dart';
+import 'package:employee_book/features/employees/domain/validation/employee_validation_messages.dart';
+import 'package:employee_book/features/employees/presentation/bloc/add_employee/add_employee_bloc.dart';
+import 'package:employee_book/features/employees/presentation/bloc/add_employee/add_employee_event.dart';
+import 'package:employee_book/features/employees/presentation/bloc/add_employee/add_employee_state.dart';
+import 'package:employee_book/features/employees/presentation/widgets/text_form_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -25,9 +25,14 @@ class AddEmployeePage extends StatelessWidget {
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()
               ..showSnackBar(
-                const SnackBar(content: Text('Added successfully')),
+                const SnackBar(
+                  content: Text('Added successfully'),
+                  duration: Duration(seconds: 2),
+                ),
               );
-            context.pop();
+            // context.pop();
+            // clear the fields and state
+            context.read<AddEmployeeBloc>().add(const AddEmployeeReset());
           case AddEmployeeStatus.failure:
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()
@@ -44,7 +49,7 @@ class AddEmployeePage extends StatelessWidget {
 
       builder: (context, state) {
         final bloc = context.read<AddEmployeeBloc>();
-        final errors = state.visibleErrors;
+        final errors = state.errors;
         void submit() {
           if (state.isLocked) return;
           FocusScope.of(context).unfocus();
@@ -65,6 +70,7 @@ class AddEmployeePage extends StatelessWidget {
             body: SingleChildScrollView(
               padding: const EdgeInsets.all(12),
               child: AutofillGroup(
+                key: ValueKey(state.formRevision),
                 child: Column(
                   children: [
                     KTextField(
@@ -80,6 +86,7 @@ class AddEmployeePage extends StatelessWidget {
                       },
                     ),
                     const SizedBox(height: 12),
+
                     KTextField(
                       hintText: 'First Name',
                       initialValue: state.input.firstName,

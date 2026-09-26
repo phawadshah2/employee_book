@@ -1,4 +1,4 @@
-import 'package:employee_book/features/employee/domain/entities/employee_input.dart';
+import 'package:employee_book/features/employees/domain/entities/employee_input.dart';
 
 enum EmployeeField { username, firstName, lastName, email }
 
