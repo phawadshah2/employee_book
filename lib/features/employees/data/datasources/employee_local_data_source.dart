@@ -27,4 +27,11 @@ class EmployeeLocalDataSource {
     await Future<void>.delayed(const Duration(seconds: 2));
     return await _database.select(_database.employees).get();
   }
+
+  Future<int> deleteEmployee(int id) async {
+    await Future<void>.delayed(const Duration(seconds: 2));
+    return await (_database.delete(
+      _database.employees,
+    )..where((employee) => employee.id.equals(id))).go();
+  }
 }

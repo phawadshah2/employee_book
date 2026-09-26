@@ -1,4 +1,5 @@
 import 'package:employee_book/features/employees/domain/usecases/add_employee.dart';
+import 'package:employee_book/features/employees/domain/usecases/delete_employee.dart';
 import 'package:employee_book/features/employees/domain/usecases/employee_list.dart';
 import 'package:employee_book/features/employees/presentation/add_employee_page.dart';
 import 'package:employee_book/features/employees/presentation/bloc/add_employee/add_employee_bloc.dart';
@@ -20,9 +21,10 @@ abstract final class AppRouter {
           name: 'employees',
           builder: (_, _) {
             return BlocProvider(
-              create: (_) =>
-                  EmployeeListBloc(getIt<EmployeeList>())
-                    ..add(const EmployeeListRequested()),
+              create: (_) => EmployeeListBloc(
+                employeeList: getIt<EmployeeList>(),
+                deleteEmployee: getIt<DeleteEmployee>(),
+              )..add(const EmployeeListRequested()),
               child: const EmployeeListPage(),
             );
           },

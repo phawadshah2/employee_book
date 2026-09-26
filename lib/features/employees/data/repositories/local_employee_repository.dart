@@ -52,4 +52,15 @@ class LocalEmployeeRepository implements EmployeeRepository {
       return const FailureResult<List<Employee>>(StorageFailure());
     }
   }
+
+  @override
+  Future<Result<void>> deleteEmployee(int id) async {
+    try {
+      await _localDataSource.deleteEmployee(id);
+      return const Success<void>(null);
+    } on SqliteException catch (error, stackTrace) {
+      _reportStorageError(error, stackTrace);
+      return const FailureResult<void>(StorageFailure());
+    }
+  }
 }
