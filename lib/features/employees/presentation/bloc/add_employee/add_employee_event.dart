@@ -18,3 +18,7 @@ final class AddEmployeeSubmitted extends AddEmployeeEvent {
 final class AddEmployeeReset extends AddEmployeeEvent {
   const AddEmployeeReset();
 }
+
+final class AddDummyEmployeeSubmitted extends AddEmployeeEvent {
+  const AddDummyEmployeeSubmitted();
+}

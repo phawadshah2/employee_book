@@ -8,6 +8,7 @@ class AddEmployeeState {
     this.input = const EmployeeInput(),
     this.status = AddEmployeeStatus.editing,
     this.showValidationErrors = false,
+    this.isAddingDummy = false,
     this.formRevision = 0,
   });
 
@@ -15,6 +16,7 @@ class AddEmployeeState {
   final AddEmployeeStatus status;
   final bool showValidationErrors;
   final int formRevision;
+  final bool isAddingDummy;
 
   bool get isSubmitting => status == AddEmployeeStatus.submitting;
 
@@ -30,11 +32,13 @@ class AddEmployeeState {
     AddEmployeeStatus? status,
     bool? showValidationErrors,
     int? formRevision,
+    bool? isAddingDummy,
   }) {
     return AddEmployeeState(
       input: input ?? this.input,
       status: status ?? this.status,
       showValidationErrors: showValidationErrors ?? this.showValidationErrors,
+      isAddingDummy: isAddingDummy ?? this.isAddingDummy,
       formRevision: formRevision ?? this.formRevision,
     );
   }

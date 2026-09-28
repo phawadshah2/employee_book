@@ -1,3 +1,5 @@
+import 'dart:developer';
+import 'package:employee_book/core/presentation/theme/theme_context_extension.dart';
 import 'package:employee_book/features/employees/presentation/bloc/employee_list/employee_list_bloc.dart';
 import 'package:employee_book/features/employees/presentation/bloc/employee_list/employee_list_event.dart';
 import 'package:employee_book/features/employees/presentation/bloc/employee_list/employee_list_state.dart';
@@ -88,8 +90,9 @@ class EmployeeListPage extends StatelessWidget {
               return ListView.separated(
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
                 itemCount: state.employees.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
+                  log('build employee index $index');
                   final employee = state.employees[index];
 
                   return Slidable(
@@ -111,20 +114,27 @@ class EmployeeListPage extends StatelessWidget {
                           foregroundColor: Theme.of(
                             context,
                           ).colorScheme.onError,
+                          borderRadius: BorderRadius.circular(6),
                           icon: Icons.delete_outline,
                           label: 'Delete',
                         ),
                       ],
                     ),
-                    child: ListTile(
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.person_outline),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: context.colors.secondary),
                       ),
-                      title: Text(employee.name),
-                      subtitle: Text(
-                        '@${employee.username}\n${employee.email}',
+                      child: ListTile(
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.person_outline),
+                        ),
+                        title: Text(employee.name),
+                        subtitle: Text(
+                          '@${employee.username}\n${employee.email}',
+                        ),
+                        isThreeLine: true,
                       ),
-                      isThreeLine: true,
                     ),
                   );
                 },

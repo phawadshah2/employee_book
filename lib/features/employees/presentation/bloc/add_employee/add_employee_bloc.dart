@@ -1,4 +1,7 @@
+import 'dart:math';
+
 import 'package:employee_book/core/domain/result/result.dart';
+import 'package:employee_book/features/employees/domain/entities/employee_input.dart';
 import 'package:employee_book/features/employees/domain/usecases/add_employee.dart';
 import 'package:employee_book/features/employees/domain/validation/employee_validation.dart';
 import 'package:employee_book/features/employees/presentation/bloc/add_employee/add_employee_event.dart';
@@ -10,6 +13,7 @@ class AddEmployeeBloc extends Bloc<AddEmployeeEvent, AddEmployeeState> {
   AddEmployeeBloc(this._addEmployee) : super(const AddEmployeeState()) {
     on<EmployeeFieldChanged>(_onFieldChanged);
     on<AddEmployeeSubmitted>(_onSubmitted);
+    on<AddDummyEmployeeSubmitted>(_onDummyEmployeeSubmitted);
     on<AddEmployeeReset>(_onReset);
   }
 
@@ -33,7 +37,13 @@ class AddEmployeeBloc extends Bloc<AddEmployeeEvent, AddEmployeeState> {
       EmployeeField.email => state.input.copyWith(email: event.value),
     };
 
-    emit(state.copyWith(input: input, status: AddEmployeeStatus.editing));
+    emit(
+      state.copyWith(
+        input: input,
+        status: AddEmployeeStatus.editing,
+        isAddingDummy: false,
+      ),
+    );
   }
 
   Future<void> _onSubmitted(
@@ -42,6 +52,56 @@ class AddEmployeeBloc extends Bloc<AddEmployeeEvent, AddEmployeeState> {
   ) async {
     if (state.isLocked) return;
     final input = state.input.normalized();
+    final errors = EmployeeValidation.validate(input);
+
+    if (errors.isNotEmpty) {
+      emit(
+        state.copyWith(
+          status: AddEmployeeStatus.editing,
+          showValidationErrors: true,
+          isAddingDummy: false,
+        ),
+      );
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        status: AddEmployeeStatus.submitting,
+        showValidationErrors: true,
+        isAddingDummy: false,
+      ),
+    );
+
+    try {
+      final result = await _addEmployee(input);
+      switch (result) {
+        case Success<void>():
+          emit(state.copyWith(status: AddEmployeeStatus.success));
+        case FailureResult<void>():
+          emit(state.copyWith(status: AddEmployeeStatus.failure));
+      }
+    } on Object catch (error, stackTrace) {
+      addError(error, stackTrace);
+      emit(state.copyWith(status: AddEmployeeStatus.failure));
+    }
+  }
+
+  Future<void> _onDummyEmployeeSubmitted(
+    AddDummyEmployeeSubmitted event,
+    Emitter<AddEmployeeState> emit,
+  ) async {
+    if (state.isLocked) return;
+    final input = _generateDummyEmployee();
+
+    emit(
+      state.copyWith(
+        input: input,
+        isAddingDummy: true,
+        status: AddEmployeeStatus.editing,
+      ),
+    );
+
     final errors = EmployeeValidation.validate(input);
 
     if (errors.isNotEmpty) {
@@ -73,5 +133,27 @@ class AddEmployeeBloc extends Bloc<AddEmployeeEvent, AddEmployeeState> {
       addError(error, stackTrace);
       emit(state.copyWith(status: AddEmployeeStatus.failure));
     }
+  }
+
+  final Random _random = Random();
+
+  EmployeeInput _generateDummyEmployee() {
+    const firstNames = ['Alex', 'Sara', 'Omar', 'Maya', 'Adam', 'Nora'];
+    const lastNames = ['Khan', 'Smith', 'Ali', 'Brown', 'Patel', 'Wilson'];
+    const domains = ['gmail', 'yahoo', 'hotmail', 'apple', 'sumsang'];
+
+    final firstName = firstNames[_random.nextInt(firstNames.length)];
+    final lastName = lastNames[_random.nextInt(lastNames.length)];
+    final domain = domains[_random.nextInt(domains.length)];
+    final suffix = List.generate(3, (_) => _random.nextInt(10)).join();
+
+    final username = '${firstName}_$suffix';
+
+    return EmployeeInput(
+      username: username,
+      firstName: firstName,
+      lastName: lastName,
+      email: '$username@$domain.com',
+    );
   }
 }

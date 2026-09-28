@@ -10,7 +10,7 @@ class EmployeeLocalDataSource {
     required String lastName,
     required String email,
   }) async {
-    await Future<void>.delayed(const Duration(seconds: 3));
+    // await Future<void>.delayed(const Duration(seconds: 3));
     return await _database
         .into(_database.employees)
         .insert(

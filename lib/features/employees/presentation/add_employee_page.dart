@@ -32,7 +32,7 @@ class AddEmployeePage extends StatelessWidget {
               );
             // clear the fields and state
             context.read<AddEmployeeBloc>().add(const AddEmployeeReset());
-            context.pop();
+            if (!state.isAddingDummy) context.pop();
           case AddEmployeeStatus.failure:
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()
@@ -50,10 +50,14 @@ class AddEmployeePage extends StatelessWidget {
       builder: (context, state) {
         final bloc = context.read<AddEmployeeBloc>();
         final errors = state.errors;
-        void submit() {
+        void submit({bool isDummy = false}) {
           if (state.isLocked) return;
           FocusScope.of(context).unfocus();
-          bloc.add(const AddEmployeeSubmitted());
+          if (!isDummy) {
+            bloc.add(const AddEmployeeSubmitted());
+          } else {
+            bloc.add(const AddDummyEmployeeSubmitted());
+          }
         }
 
         return PopScope(
@@ -132,7 +136,7 @@ class AddEmployeePage extends StatelessWidget {
                       child: FilledButton(
                         key: const ValueKey('add_employee_button'),
                         onPressed: state.isLocked ? null : submit,
-                        child: state.isSubmitting
+                        child: state.isSubmitting && !state.isAddingDummy
                             ? Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -152,6 +156,37 @@ class AddEmployeePage extends StatelessWidget {
                                 ],
                               )
                             : const Text('Add employee'),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: FilledButton(
+                        key: const ValueKey('add_dummy_employee_button'),
+                        onPressed: state.isLocked
+                            ? null
+                            : () => submit(isDummy: true),
+                        child: state.isSubmitting && state.isAddingDummy
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimary,
+                                      semanticsLabel: 'Saving dummy employee',
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text('Adding dummy employee…'),
+                                ],
+                              )
+                            : const Text('Add dummy employee'),
                       ),
                     ),
                   ],
