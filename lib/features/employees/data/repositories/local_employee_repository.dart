@@ -3,8 +3,9 @@ import 'package:employee_book/core/domain/error/failure.dart';
 import 'package:employee_book/core/domain/result/result.dart';
 import 'package:employee_book/features/employees/data/datasources/employee_local_data_source.dart';
 import 'package:employee_book/features/employees/data/models/employee_dto.dart';
-import 'package:employee_book/features/employees/domain/entities/employee.dart';
 import 'package:employee_book/features/employees/domain/entities/employee_input.dart';
+import 'package:employee_book/features/employees/domain/entities/employee_page.dart';
+import 'package:employee_book/features/employees/domain/entities/employee_page_request.dart';
 import 'package:employee_book/features/employees/domain/repositories/employee_repository.dart';
 import 'package:sqlite3/common.dart';
 
@@ -39,21 +40,6 @@ class LocalEmployeeRepository implements EmployeeRepository {
   }
 
   @override
-  Future<Result<List<Employee>>> getEmployees() async {
-    try {
-      final rows = await _localDataSource.getEmployees();
-      final dtos = rows.map((row) {
-        return EmployeeDto.fromRow(row);
-      }).toList();
-      final employees = dtos.map((dto) => dto.toEntity()).toList();
-      return Success<List<Employee>>(employees);
-    } on SqliteException catch (error, stackTrace) {
-      _reportStorageError(error, stackTrace);
-      return const FailureResult<List<Employee>>(StorageFailure());
-    }
-  }
-
-  @override
   Future<Result<void>> deleteEmployee(int id) async {
     try {
       await _localDataSource.deleteEmployee(id);
@@ -61,6 +47,30 @@ class LocalEmployeeRepository implements EmployeeRepository {
     } on SqliteException catch (error, stackTrace) {
       _reportStorageError(error, stackTrace);
       return const FailureResult<void>(StorageFailure());
+    }
+  }
+
+  @override
+  Future<Result<EmployeePage>> getEmployees(EmployeePageRequest request) async {
+    try {
+      final rows = await _localDataSource.getEmployees(
+        limit: request.limit + 1,
+        afterId: request.afterId,
+      );
+      final hasMore = rows.length > request.limit;
+      final employees = rows
+          .take(request.limit)
+          .map((row) => EmployeeDto.fromRow(row).toEntity())
+          .toList();
+      return Success<EmployeePage>(
+        EmployeePage(
+          employees: employees,
+          nextCursor: hasMore ? employees.last.id : null,
+        ),
+      );
+    } on SqliteException catch (error, stackTrace) {
+      _reportStorageError(error, stackTrace);
+      return const FailureResult<EmployeePage>(StorageFailure());
     }
   }
 }

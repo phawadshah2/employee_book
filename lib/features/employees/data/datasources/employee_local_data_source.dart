@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:employee_book/core/data/local/database/app_database.dart';
 
 class EmployeeLocalDataSource {
@@ -23,9 +24,20 @@ class EmployeeLocalDataSource {
         );
   }
 
-  Future<List<EmployeeRow>> getEmployees() async {
+  Future<List<EmployeeRow>> getEmployees({
+    required int limit,
+    int? afterId,
+  }) async {
     await Future<void>.delayed(const Duration(seconds: 2));
-    return await _database.select(_database.employees).get();
+    final query = _database.select(_database.employees);
+    if (afterId != null) {
+      query.where((employee) => employee.id.isBiggerThanValue(afterId));
+    }
+    query
+      ..orderBy([(employee) => OrderingTerm.asc(employee.id)])
+      ..limit(limit);
+
+    return await query.get();
   }
 
   Future<int> deleteEmployee(int id) async {
