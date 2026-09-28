@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:employee_book/features/employees/domain/validation/employee_validation.dart';
 import 'package:employee_book/features/employees/domain/validation/employee_validation_messages.dart';
 import 'package:employee_book/features/employees/presentation/bloc/add_employee/add_employee_bloc.dart';
@@ -19,7 +18,6 @@ class AddEmployeePage extends StatelessWidget {
         return previous.status != current.status;
       },
       listener: (context, state) {
-        log(state.toString());
         switch (state.status) {
           case AddEmployeeStatus.success:
             ScaffoldMessenger.of(context)

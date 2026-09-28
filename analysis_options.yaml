@@ -2,6 +2,7 @@ include: package:very_good_analysis/analysis_options.yaml
 
 analyzer:
   errors:
+    avoid_redundant_argument_values: ignore
     matching_super_parameters: ignore
   exclude:
     - build/**
