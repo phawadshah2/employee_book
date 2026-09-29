@@ -5,6 +5,8 @@ import 'package:employee_book/features/employees/domain/repositories/employee_re
 import 'package:employee_book/features/employees/domain/usecases/add_employee.dart';
 import 'package:employee_book/features/employees/domain/usecases/delete_employee.dart';
 import 'package:employee_book/features/employees/domain/usecases/employee_list.dart';
+import 'package:employee_book/features/employees/domain/usecases/get_employee.dart';
+import 'package:employee_book/features/employees/domain/usecases/update_employee.dart';
 import 'package:get_it/get_it.dart';
 
 void initEmployeeDependencies(GetIt getIt) {
@@ -17,4 +19,6 @@ void initEmployeeDependencies(GetIt getIt) {
   getIt.registerFactory(() => AddEmployee(getIt<EmployeeRepository>()));
   getIt.registerFactory(() => EmployeeList(getIt<EmployeeRepository>()));
   getIt.registerFactory(() => DeleteEmployee(getIt<EmployeeRepository>()));
+  getIt.registerFactory(() => GetEmployee(getIt<EmployeeRepository>()));
+  getIt.registerFactory(() => UpdateEmployee(getIt<EmployeeRepository>()));
 }

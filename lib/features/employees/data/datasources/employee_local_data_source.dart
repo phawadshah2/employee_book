@@ -46,4 +46,30 @@ class EmployeeLocalDataSource {
       _database.employees,
     )..where((employee) => employee.id.equals(id))).go();
   }
+
+  Future<EmployeeRow?> getEmployee(int id) async {
+    await Future<void>.delayed(const Duration(seconds: 2));
+    final query = _database.select(_database.employees)
+      ..where((employee) => employee.id.equals(id));
+    return await query.getSingleOrNull();
+  }
+
+  Future<int> updateEmployee({
+    required int id,
+    required String username,
+    required String firstName,
+    required String lastName,
+    required String email,
+  }) async {
+    final query = _database.update(_database.employees)
+      ..where((employee) => employee.id.equals(id));
+    return await query.write(
+      EmployeesCompanion(
+        username: Value(username),
+        firstName: Value(firstName),
+        lastName: Value(lastName),
+        email: Value(email),
+      ),
+    );
+  }
 }
