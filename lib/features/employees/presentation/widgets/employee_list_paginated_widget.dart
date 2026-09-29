@@ -6,6 +6,7 @@ import 'package:employee_book/features/employees/presentation/bloc/employee_list
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:go_router/go_router.dart';
 
 class EmployeePaginatedWidget extends StatefulWidget {
   const EmployeePaginatedWidget({
@@ -112,6 +113,17 @@ class _EmployeePaginatedWidgetState extends State<EmployeePaginatedWidget> {
             ),
 
             child: ListTile(
+              onTap: !actionsEnabled
+                  ? null
+                  : () async {
+                      await context.push<bool>(
+                        '/employees/${employee.id}/edit',
+                      );
+                      if (!context.mounted) return;
+                      context.read<EmployeeListBloc>().add(
+                        const EmployeeListRequested(),
+                      );
+                    },
               leading: const CircleAvatar(child: Icon(Icons.person_outline)),
               title: Text(employee.name),
               subtitle: Text(

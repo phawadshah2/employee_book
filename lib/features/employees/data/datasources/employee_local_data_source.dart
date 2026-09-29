@@ -5,13 +5,17 @@ class EmployeeLocalDataSource {
   const EmployeeLocalDataSource(this._database);
   final AppDatabase _database;
 
+  Future<void> _defaultDelay() async {
+    return await Future<void>.delayed(const Duration(seconds: 1));
+  }
+
   Future<int> insertEmployee({
     required String username,
     required String firstName,
     required String lastName,
     required String email,
   }) async {
-    await Future<void>.delayed(const Duration(seconds: 3));
+    await _defaultDelay();
     return await _database
         .into(_database.employees)
         .insert(
@@ -28,7 +32,7 @@ class EmployeeLocalDataSource {
     required int limit,
     int? afterId,
   }) async {
-    await Future<void>.delayed(const Duration(seconds: 2));
+    await _defaultDelay();
     final query = _database.select(_database.employees);
     if (afterId != null) {
       query.where((employee) => employee.id.isBiggerThanValue(afterId));
@@ -41,9 +45,36 @@ class EmployeeLocalDataSource {
   }
 
   Future<int> deleteEmployee(int id) async {
-    await Future<void>.delayed(const Duration(seconds: 2));
+    await _defaultDelay();
     return await (_database.delete(
       _database.employees,
     )..where((employee) => employee.id.equals(id))).go();
+  }
+
+  Future<EmployeeRow?> getEmployee(int id) async {
+    await _defaultDelay();
+    final query = _database.select(_database.employees)
+      ..where((employee) => employee.id.equals(id));
+    return await query.getSingleOrNull();
+  }
+
+  Future<int> updateEmployee({
+    required int id,
+    required String username,
+    required String firstName,
+    required String lastName,
+    required String email,
+  }) async {
+    await _defaultDelay();
+    final query = _database.update(_database.employees)
+      ..where((employee) => employee.id.equals(id));
+    return await query.write(
+      EmployeesCompanion(
+        username: Value(username),
+        firstName: Value(firstName),
+        lastName: Value(lastName),
+        email: Value(email),
+      ),
+    );
   }
 }

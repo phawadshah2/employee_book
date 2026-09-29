@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 
 class FailureWidget extends StatelessWidget {
-  const FailureWidget({required this.errMessage, super.key, this.onRetry});
+  const FailureWidget({
+    required this.errMessage,
+    super.key,
+    this.buttonTitle,
+    this.onButtonTap,
+  });
 
   final String errMessage;
-  final void Function()? onRetry;
+  final String? buttonTitle;
+  final void Function()? onButtonTap;
 
   @override
   Widget build(BuildContext context) {
@@ -16,8 +22,11 @@ class FailureWidget extends StatelessWidget {
           children: [
             Text(errMessage, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            if (onRetry != null)
-              FilledButton(onPressed: onRetry, child: const Text('Retry')),
+            if (onButtonTap != null)
+              FilledButton(
+                onPressed: onButtonTap,
+                child: Text(buttonTitle ?? 'Retry'),
+              ),
           ],
         ),
       ),

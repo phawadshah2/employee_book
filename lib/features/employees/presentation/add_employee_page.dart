@@ -1,3 +1,4 @@
+import 'package:employee_book/core/presentation/widgets/appbar.dart';
 import 'package:employee_book/features/employees/domain/validation/employee_validation.dart';
 import 'package:employee_book/features/employees/domain/validation/employee_validation_messages.dart';
 import 'package:employee_book/features/employees/presentation/bloc/add_employee/add_employee_bloc.dart';
@@ -57,14 +58,10 @@ class AddEmployeePage extends StatelessWidget {
         return PopScope(
           canPop: !state.isSubmitting,
           child: Scaffold(
-            appBar: AppBar(
-              title: const Text('Add Employee'),
-              leading: IconButton(
-                onPressed: () => context.pop(),
-                icon: const Icon(Icons.arrow_back_ios_new),
-              ),
+            appBar: KAppBar(
+              titleText: 'Add Employee',
+              canGoBack: !state.isSubmitting,
             ),
-
             body: SingleChildScrollView(
               padding: const EdgeInsets.all(12),
               child: AutofillGroup(
