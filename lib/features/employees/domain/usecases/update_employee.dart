@@ -11,7 +11,7 @@ class UpdateEmployee implements UseCase<void, UpdateEmployeeParams> {
   @override
   Future<Result<void>> call(UpdateEmployeeParams params) async {
     if (params.id <= 0) {
-      return const FailureResult<void>(EmployeeNotFoundFailure());
+      return const FailureResult<void>(ValidationFailure());
     }
     final normalized = params.input.normalized();
     final errors = EmployeeValidation.validate(normalized);

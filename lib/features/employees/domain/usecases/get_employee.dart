@@ -10,7 +10,7 @@ class GetEmployee implements UseCase<Employee, int> {
   @override
   Future<Result<Employee>> call(int id) async {
     if (id <= 0) {
-      return const FailureResult<Employee>(EmployeeNotFoundFailure());
+      return const FailureResult<Employee>(ValidationFailure());
     }
     return await _repository.getEmployee(id);
   }

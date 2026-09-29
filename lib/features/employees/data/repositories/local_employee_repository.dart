@@ -109,7 +109,7 @@ class LocalEmployeeRepository implements EmployeeRepository {
       return const Success<void>(null);
     } on SqliteException catch (error, stackTrace) {
       _reportStorageError(error, stackTrace);
-      return const FailureResult<Employee>(StorageFailure());
+      return const FailureResult<void>(StorageFailure());
     }
   }
 }

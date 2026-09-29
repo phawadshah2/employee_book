@@ -92,7 +92,7 @@ class EmployeeListPage extends StatelessWidget {
       case EmployeeListStatus.failure:
         return FailureWidget(
           errMessage: 'Could not load employees. Please try again.',
-          onRetry: () {
+          onButtonTap: () {
             context.read<EmployeeListBloc>().add(const EmployeeListRequested());
           },
         );
