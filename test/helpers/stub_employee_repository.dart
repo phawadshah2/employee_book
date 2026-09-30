@@ -1,3 +1,4 @@
+import 'package:employee_book/core/domain/error/failure.dart';
 import 'package:employee_book/core/domain/result/result.dart';
 import 'package:employee_book/features/employees/domain/entities/employee.dart';
 import 'package:employee_book/features/employees/domain/entities/employee_input.dart';
@@ -17,15 +18,22 @@ class StubEmployeeRepository implements EmployeeRepository {
     return addResult;
   }
 
+  Result<Employee> getEmployeeResult = const FailureResult<Employee>(
+    EmployeeNotFoundFailure(),
+  );
+  int getEmployeeCallCount = 0;
+  int? lastRequestedEmployeeId;
+
   @override
-  Future<Result<void>> deleteEmployee(int id) {
-    // TODO(deleteEmployee): implement deleteEmployee
-    throw UnimplementedError();
+  Future<Result<Employee>> getEmployee(int id) async {
+    getEmployeeCallCount++;
+    lastRequestedEmployeeId = id;
+    return getEmployeeResult;
   }
 
   @override
-  Future<Result<Employee>> getEmployee(int id) {
-    // TODO(getEmployee): implement getEmployee
+  Future<Result<void>> deleteEmployee(int id) {
+    // TODO(deleteEmployee): implement deleteEmployee
     throw UnimplementedError();
   }
 
