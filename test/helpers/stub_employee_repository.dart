@@ -31,10 +31,15 @@ class StubEmployeeRepository implements EmployeeRepository {
     return getEmployeeResult;
   }
 
+  Result<void> deleteEmployeeResult = const Success<void>(null);
+  int deleteEmployeeCount = 0;
+  int? lastDeletedEmployeeId;
+
   @override
-  Future<Result<void>> deleteEmployee(int id) {
-    // TODO(deleteEmployee): implement deleteEmployee
-    throw UnimplementedError();
+  Future<Result<void>> deleteEmployee(int id) async {
+    deleteEmployeeCount++;
+    lastDeletedEmployeeId = id;
+    return deleteEmployeeResult;
   }
 
   @override
