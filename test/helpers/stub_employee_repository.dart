@@ -19,19 +19,19 @@ class StubEmployeeRepository implements EmployeeRepository {
 
   @override
   Future<Result<void>> deleteEmployee(int id) {
-    // TODO: implement deleteEmployee
+    // TODO(deleteEmployee): implement deleteEmployee
     throw UnimplementedError();
   }
 
   @override
   Future<Result<Employee>> getEmployee(int id) {
-    // TODO: implement getEmployee
+    // TODO(getEmployee): implement getEmployee
     throw UnimplementedError();
   }
 
   @override
   Future<Result<EmployeePage>> getEmployees(EmployeePageRequest request) {
-    // TODO: implement getEmployees
+    // TODO(getEmployees): implement getEmployees
     throw UnimplementedError();
   }
 
@@ -40,7 +40,7 @@ class StubEmployeeRepository implements EmployeeRepository {
     required int id,
     required EmployeeInput input,
   }) {
-    // TODO: implement updateEmployee
+    // TODO(updateEmployee): implement updateEmployee
     throw UnimplementedError();
   }
 }
