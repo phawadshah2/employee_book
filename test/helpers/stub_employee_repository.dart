@@ -48,12 +48,19 @@ class StubEmployeeRepository implements EmployeeRepository {
     throw UnimplementedError();
   }
 
+  Result<void> updateEmployeeResult = const Success<void>(null);
+  int updateEmployeeCount = 0;
+  int? lastUpdatedEmployeeId;
+  EmployeeInput? lastUpdatedEmployeeInput;
+
   @override
   Future<Result<void>> updateEmployee({
     required int id,
     required EmployeeInput input,
-  }) {
-    // TODO(updateEmployee): implement updateEmployee
-    throw UnimplementedError();
+  }) async {
+    updateEmployeeCount++;
+    lastUpdatedEmployeeId = id;
+    lastUpdatedEmployeeInput = input;
+    return updateEmployeeResult;
   }
 }
