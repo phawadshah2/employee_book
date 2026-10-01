@@ -42,10 +42,18 @@ class StubEmployeeRepository implements EmployeeRepository {
     return deleteEmployeeResult;
   }
 
+  Result<EmployeePage> getEmployeesResult = Success<EmployeePage>(
+    EmployeePage(employees: const [], nextCursor: null),
+  );
+
+  int getEmployeesCallCount = 0;
+  EmployeePageRequest? lastPageRequest;
+
   @override
-  Future<Result<EmployeePage>> getEmployees(EmployeePageRequest request) {
-    // TODO(getEmployees): implement getEmployees
-    throw UnimplementedError();
+  Future<Result<EmployeePage>> getEmployees(EmployeePageRequest request) async {
+    getEmployeesCallCount++;
+    lastPageRequest = request;
+    return getEmployeesResult;
   }
 
   Result<void> updateEmployeeResult = const Success<void>(null);
