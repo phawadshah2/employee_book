@@ -7,40 +7,85 @@ on:
     branches:
       - main
       - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   analyze-and-test:
     name: Analyze & test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v7
 
-      - name: Read Flutter version from .fvmrc
+      - name: Read Flutter version
         id: fvm
-        run: echo "version=$(jq -r .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(jq -er .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
 
-      - uses: subosito/flutter-action@v2
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ steps.fvm.outputs.version }}
           channel: stable
           cache: true
 
-      - run: flutter pub get
+      - name: Install dependencies
+        run: flutter pub get
 
       - name: Verify formatting
-        run: dart format --set-exit-if-changed .
-
-    #   - name: Verify generated code is committed and fresh
-    #     run: |
-    #       dart run build_runner build
-    #       if [ -n "$(git status --porcelain)" ]; then
-    #         echo "::error::Generated code is stale or uncommitted. Run 'fvm dart run build_runner build' and commit the result."
-    #         git status --porcelain
-    #         exit 1
-    #       fi
+        run: dart format --output=none --set-exit-if-changed .
 
       - name: Analyze
-        run: flutter analyze --fatal-infos
+        run: flutter analyze --no-pub --fatal-infos
 
       - name: Test
-        run: flutter test
+        run: flutter test --no-pub
+
+  build-apk:
+    name: Build Android APK
+    needs: analyze-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Read Flutter version
+        id: fvm
+        run: echo "version=$(jq -er .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.fvm.outputs.version }}
+          channel: stable
+          cache: true
+
+      - name: Configure Java for Flutter
+        run: flutter config --jdk-dir="$JAVA_HOME"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release --no-pub --build-number="$GITHUB_RUN_NUMBER"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: employee-book-apk-${{ github.run_number }}-${{ github.run_attempt }}
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
