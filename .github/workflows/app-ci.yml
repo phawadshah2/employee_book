@@ -147,9 +147,106 @@ jobs:
           retention-days: 14
           compression-level: 0
 
+      - name: Prepare Slack notification
+        shell: bash
+        env:
+          SLACK_CHANNEL_ID: ${{ vars.SLACK_CHANNEL_ID }}
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import subprocess
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          channel = os.environ.get("SLACK_CHANNEL_ID")
+          if not channel:
+              raise SystemExit("Missing repository variable: SLACK_CHANNEL_ID")
+
+          apk = Path("build/app/outputs/flutter-apk/app-release.apk")
+          if not apk.is_file():
+              raise SystemExit("Release APK was not found")
+
+          def slack_escape(value):
+              return (
+                  value.replace("&", "&amp;")
+                  .replace("<", "&lt;")
+                  .replace(">", "&gt;")
+              )
+
+          repository = os.environ["GITHUB_REPOSITORY"]
+          sha = os.environ["GITHUB_SHA"]
+          build = os.environ["GITHUB_RUN_NUMBER"]
+          attempt = os.environ["GITHUB_RUN_ATTEMPT"]
+          server = os.environ["GITHUB_SERVER_URL"]
+
+          run_url = (
+              f"{server}/{repository}/actions/runs/"
+              f"{os.environ['GITHUB_RUN_ID']}"
+          )
+          commit_url = f"{server}/{repository}/commit/{sha}"
+
+          subject = subprocess.check_output(
+              ["git", "log", "-1", "--format=%s"],
+              text=True,
+          ).strip()
+
+          trigger = (
+              "Manual workflow run"
+              if os.environ["GITHUB_EVENT_NAME"] == "workflow_dispatch"
+              else "Push to main (merge or direct push)"
+          )
+
+          size_mb = apk.stat().st_size / (1024 * 1024)
+          checksum = hashlib.sha256(apk.read_bytes()).hexdigest()
+          timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+          message = "\n".join([
+              "✅ *Employee Book — Android build ready*",
+              "",
+              f"*Repository:* {slack_escape(repository)}",
+              f"*Branch:* {slack_escape(os.environ['GITHUB_REF_NAME'])}",
+              f"*Trigger:* {trigger}",
+              f"*Triggered by:* {slack_escape(os.environ['GITHUB_ACTOR'])}",
+              f"*Run requested by:* {slack_escape(os.environ['GITHUB_TRIGGERING_ACTOR'])}",
+              f"*Commit:* <{commit_url}|{sha[:7]}>",
+              f"*Change:* {slack_escape(subject[:300])}",
+              f"*Build:* {build} · Attempt {attempt}",
+              "*Checks:* Formatting, analysis, and tests passed",
+              "*APK:* Release signed",
+              f"*Size:* {size_mb:.1f} MiB",
+              f"*Prepared at:* {timestamp}",
+              f"*SHA-256:* `{checksum}`",
+              "",
+              f"<{run_url}|View workflow run and GitHub artifact>",
+              "Download the attached APK to install on Android.",
+          ])
+
+          payload = {
+              "channel_id": channel,
+              "initial_comment": message,
+              "file": str(apk),
+              "filename": f"employee-book-{build}-{attempt}.apk",
+              "title": f"Employee Book — Build {build}",
+          }
+
+          output = Path(os.environ["RUNNER_TEMP"]) / "slack-apk.json"
+          output.write_text(json.dumps(payload), encoding="utf-8")
+          PY
+
+      - name: Send APK and success notification to Slack
+        uses: slackapi/slack-github-action@v4.0.0
+        with:
+          method: files.uploadV2
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          payload-file-path: ${{ runner.temp }}/slack-apk.json
+          errors: true
+
       - name: Clean up Android signing files
         if: ${{ always() }}
         shell: bash
         run: |
           rm -f android/key.properties
           rm -f "$RUNNER_TEMP/employee-book-release.jks"
+          rm -f "$RUNNER_TEMP/slack-apk.json"
