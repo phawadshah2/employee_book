@@ -46,8 +46,11 @@ jobs:
         run: flutter test --no-pub
 
   build-apk:
-    name: Build Android APK
+    name: Build signed Android APK
     needs: analyze-and-test
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -78,6 +81,60 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Restore Android signing files
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          python3 - <<'PY'
+          import base64
+          import os
+          from pathlib import Path
+
+          required = [
+              "ANDROID_KEYSTORE_BASE64",
+              "ANDROID_KEYSTORE_PASSWORD",
+              "ANDROID_KEY_PASSWORD",
+              "ANDROID_KEY_ALIAS",
+          ]
+
+          missing = [name for name in required if not os.environ.get(name)]
+          if missing:
+              raise SystemExit("Missing signing secrets: " + ", ".join(missing))
+
+          os.umask(0o077)
+
+          keystore = Path(os.environ["RUNNER_TEMP"]) / "employee-book-release.jks"
+          encoded = "".join(os.environ["ANDROID_KEYSTORE_BASE64"].split())
+          keystore.write_bytes(base64.b64decode(encoded, validate=True))
+
+          # Preserve special characters when Java reads the properties.
+          def property_value(value):
+              data = value.encode("utf-16-be")
+              return "".join(
+                  f"\\u{int.from_bytes(data[i:i + 2], 'big'):04x}"
+                  for i in range(0, len(data), 2)
+              )
+
+          properties = {
+              "storeFile": str(keystore),
+              "storePassword": os.environ["ANDROID_KEYSTORE_PASSWORD"],
+              "keyPassword": os.environ["ANDROID_KEY_PASSWORD"],
+              "keyAlias": os.environ["ANDROID_KEY_ALIAS"],
+          }
+
+          Path("android/key.properties").write_text(
+              "".join(
+                  f"{key}={property_value(value)}\n"
+                  for key, value in properties.items()
+              ),
+              encoding="ascii",
+          )
+          PY
+
       - name: Build release APK
         run: flutter build apk --release --no-pub --build-number="$GITHUB_RUN_NUMBER"
 
@@ -89,3 +146,10 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
+
+      - name: Clean up Android signing files
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          rm -f android/key.properties
+          rm -f "$RUNNER_TEMP/employee-book-release.jks"
