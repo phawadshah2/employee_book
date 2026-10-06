@@ -8,6 +8,12 @@ on:
       - main
       - develop
   workflow_dispatch:
+    inputs:
+      test_failure_notification:
+        description: 'Intentionally fail CI to test the Slack failure notification'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -19,6 +25,15 @@ jobs:
     timeout-minutes: 20
 
     steps:
+      - name: Intentionally fail to test Slack notification
+        if: >-
+          github.event_name == 'workflow_dispatch' &&
+          inputs.test_failure_notification
+        shell: bash
+        run: |
+          echo "::error::Intentional failure to test Slack notifications."
+          exit 1
+        
       - name: Checkout repository
         uses: actions/checkout@v7
 
