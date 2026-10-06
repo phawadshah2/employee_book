@@ -250,3 +250,106 @@ jobs:
           rm -f android/key.properties
           rm -f "$RUNNER_TEMP/employee-book-release.jks"
           rm -f "$RUNNER_TEMP/slack-apk.json"
+
+  notify-failure:
+    name: Notify Slack of pipeline failure
+    needs:
+      - analyze-and-test
+      - build-apk
+    if: >-
+      !cancelled() &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (needs.analyze-and-test.result == 'failure' ||
+       needs.build-apk.result == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Prepare failure notification
+        shell: bash
+        env:
+          SLACK_CHANNEL_ID: ${{ vars.SLACK_CHANNEL_ID }}
+          CHECKS_RESULT: ${{ needs.analyze-and-test.result }}
+          APK_RESULT: ${{ needs.build-apk.result }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          channel = os.environ.get("SLACK_CHANNEL_ID")
+          if not channel:
+              raise SystemExit("Missing repository variable: SLACK_CHANNEL_ID")
+
+          def slack_escape(value):
+              return (
+                  value.replace("&", "&amp;")
+                  .replace("<", "&lt;")
+                  .replace(">", "&gt;")
+              )
+
+          repository = os.environ["GITHUB_REPOSITORY"]
+          sha = os.environ["GITHUB_SHA"]
+          server = os.environ["GITHUB_SERVER_URL"]
+
+          run_url = (
+              f"{server}/{repository}/actions/runs/"
+              f"{os.environ['GITHUB_RUN_ID']}"
+          )
+          commit_url = f"{server}/{repository}/commit/{sha}"
+
+          checks = os.environ["CHECKS_RESULT"]
+          apk = os.environ["APK_RESULT"]
+
+          if checks == "failure":
+              summary = "Analysis/test job failed. APK job was skipped."
+          else:
+              summary = (
+                  "APK build/delivery job failed. "
+                  "Check the logs for the exact failing step."
+              )
+
+          message = "\n".join([
+              "❌ *Employee Book — Pipeline failed*",
+              "",
+              summary,
+              "",
+              f"*Repository:* {slack_escape(repository)}",
+              f"*Branch:* {slack_escape(os.environ['GITHUB_REF_NAME'])}",
+              f"*Event:* {slack_escape(os.environ['GITHUB_EVENT_NAME'])}",
+              f"*Triggered by:* {slack_escape(os.environ['GITHUB_ACTOR'])}",
+              f"*Run requested by:* {slack_escape(os.environ['GITHUB_TRIGGERING_ACTOR'])}",
+              f"*Commit:* <{commit_url}|{sha[:7]}>",
+              f"*Build:* {os.environ['GITHUB_RUN_NUMBER']}",
+              f"*Attempt:* {os.environ['GITHUB_RUN_ATTEMPT']}",
+              "",
+              f"*Analyze & test:* {checks}",
+              f"*APK build/delivery:* {apk}",
+              "",
+              f"<{run_url}|Open workflow and inspect failed step>",
+          ])
+
+          payload = {
+              "channel": channel,
+              "text": message,
+              "unfurl_links": False,
+              "unfurl_media": False,
+          }
+
+          output = Path(os.environ["RUNNER_TEMP"]) / "slack-failure.json"
+          output.write_text(json.dumps(payload), encoding="utf-8")
+          PY
+
+      - name: Send failure notification to Slack
+        uses: slackapi/slack-github-action@v4.0.0
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          payload-file-path: ${{ runner.temp }}/slack-failure.json
+          errors: true
+
+      - name: Clean up failure notification
+        if: ${{ always() }}
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/slack-failure.json"
