@@ -45,6 +45,52 @@ jobs:
       - name: Test
         run: flutter test --no-pub
 
+  validate-android-build:
+    name: Validate Android build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Read Flutter version
+        id: fvm
+        run: echo "version=$(jq -er .flutter .fvmrc)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.fvm.outputs.version }}
+          channel: stable
+          cache: true
+
+      - name: Configure Java for Flutter
+        run: flutter config --jdk-dir="$JAVA_HOME"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Create temporary CI signing key
+        run: python3 .github/scripts/android_ci.py signing-pr
+
+      - name: Validate release APK build
+        run: flutter build apk --release --no-pub
+
+      - name: Clean up signing files
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          rm -f android/key.properties
+          rm -f "$RUNNER_TEMP/employee-book-ci.jks"
+
   build-apk:
     name: Build signed Android APK
     needs: analyze-and-test
@@ -82,58 +128,12 @@ jobs:
         run: flutter pub get
 
       - name: Restore Android signing files
-        shell: bash
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-        run: |
-          python3 - <<'PY'
-          import base64
-          import os
-          from pathlib import Path
-
-          required = [
-              "ANDROID_KEYSTORE_BASE64",
-              "ANDROID_KEYSTORE_PASSWORD",
-              "ANDROID_KEY_PASSWORD",
-              "ANDROID_KEY_ALIAS",
-          ]
-
-          missing = [name for name in required if not os.environ.get(name)]
-          if missing:
-              raise SystemExit("Missing signing secrets: " + ", ".join(missing))
-
-          os.umask(0o077)
-
-          keystore = Path(os.environ["RUNNER_TEMP"]) / "employee-book-release.jks"
-          encoded = "".join(os.environ["ANDROID_KEYSTORE_BASE64"].split())
-          keystore.write_bytes(base64.b64decode(encoded, validate=True))
-
-          # Preserve special characters when Java reads the properties.
-          def property_value(value):
-              data = value.encode("utf-16-be")
-              return "".join(
-                  f"\\u{int.from_bytes(data[i:i + 2], 'big'):04x}"
-                  for i in range(0, len(data), 2)
-              )
-
-          properties = {
-              "storeFile": str(keystore),
-              "storePassword": os.environ["ANDROID_KEYSTORE_PASSWORD"],
-              "keyPassword": os.environ["ANDROID_KEY_PASSWORD"],
-              "keyAlias": os.environ["ANDROID_KEY_ALIAS"],
-          }
-
-          Path("android/key.properties").write_text(
-              "".join(
-                  f"{key}={property_value(value)}\n"
-                  for key, value in properties.items()
-              ),
-              encoding="ascii",
-          )
-          PY
+        run: python3 .github/scripts/android_ci.py signing-release
 
       - name: Build release APK
         run: flutter build apk --release --no-pub --build-number="$GITHUB_RUN_NUMBER"
@@ -147,109 +147,26 @@ jobs:
           retention-days: 14
           compression-level: 0
 
-      - name: Prepare Slack notification
-        shell: bash
+      - name: Prepare Slack success notification
         env:
           SLACK_CHANNEL_ID: ${{ vars.SLACK_CHANNEL_ID }}
-        run: |
-          python3 - <<'PY'
-          import hashlib
-          import json
-          import os
-          import subprocess
-          from datetime import datetime, timezone
-          from pathlib import Path
-
-          channel = os.environ.get("SLACK_CHANNEL_ID")
-          if not channel:
-              raise SystemExit("Missing repository variable: SLACK_CHANNEL_ID")
-
-          apk = Path("build/app/outputs/flutter-apk/app-release.apk")
-          if not apk.is_file():
-              raise SystemExit("Release APK was not found")
-
-          def slack_escape(value):
-              return (
-                  value.replace("&", "&amp;")
-                  .replace("<", "&lt;")
-                  .replace(">", "&gt;")
-              )
-
-          repository = os.environ["GITHUB_REPOSITORY"]
-          sha = os.environ["GITHUB_SHA"]
-          build = os.environ["GITHUB_RUN_NUMBER"]
-          attempt = os.environ["GITHUB_RUN_ATTEMPT"]
-          server = os.environ["GITHUB_SERVER_URL"]
-
-          run_url = (
-              f"{server}/{repository}/actions/runs/"
-              f"{os.environ['GITHUB_RUN_ID']}"
-          )
-          commit_url = f"{server}/{repository}/commit/{sha}"
-
-          subject = subprocess.check_output(
-              ["git", "log", "-1", "--format=%s"],
-              text=True,
-          ).strip()
-
-          trigger = (
-              "Manual workflow run"
-              if os.environ["GITHUB_EVENT_NAME"] == "workflow_dispatch"
-              else "Push to main (merge or direct push)"
-          )
-
-          size_mb = apk.stat().st_size / (1024 * 1024)
-          checksum = hashlib.sha256(apk.read_bytes()).hexdigest()
-          timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-
-          message = "\n".join([
-              "✅ *Employee Book — Android build ready*",
-              "",
-              f"*Repository:* {slack_escape(repository)}",
-              f"*Branch:* {slack_escape(os.environ['GITHUB_REF_NAME'])}",
-              f"*Trigger:* {trigger}",
-              f"*Triggered by:* {slack_escape(os.environ['GITHUB_ACTOR'])}",
-              f"*Run requested by:* {slack_escape(os.environ['GITHUB_TRIGGERING_ACTOR'])}",
-              f"*Commit:* <{commit_url}|{sha[:7]}>",
-              f"*Change:* {slack_escape(subject[:300])}",
-              f"*Build:* {build} · Attempt {attempt}",
-              "*Checks:* Formatting, analysis, and tests passed",
-              "*APK:* Release signed",
-              f"*Size:* {size_mb:.1f} MiB",
-              f"*Prepared at:* {timestamp}",
-              f"*SHA-256:* `{checksum}`",
-              "",
-              f"<{run_url}|View workflow run and GitHub artifact>",
-              "Download the attached APK to install on Android.",
-          ])
-
-          payload = {
-              "channel_id": channel,
-              "initial_comment": message,
-              "file": str(apk),
-              "filename": f"employee-book-{build}-{attempt}.apk",
-              "title": f"Employee Book — Build {build}",
-          }
-
-          output = Path(os.environ["RUNNER_TEMP"]) / "slack-apk.json"
-          output.write_text(json.dumps(payload), encoding="utf-8")
-          PY
+        run: python3 .github/scripts/android_ci.py slack-success
 
       - name: Send APK and success notification to Slack
         uses: slackapi/slack-github-action@v4.0.0
         with:
           method: files.uploadV2
           token: ${{ secrets.SLACK_BOT_TOKEN }}
-          payload-file-path: ${{ runner.temp }}/slack-apk.json
+          payload-file-path: ${{ runner.temp }}/slack-success.json
           errors: true
 
-      - name: Clean up Android signing files
+      - name: Clean up signing and notification files
         if: ${{ always() }}
         shell: bash
         run: |
           rm -f android/key.properties
-          rm -f "$RUNNER_TEMP/employee-book-release.jks"
-          rm -f "$RUNNER_TEMP/slack-apk.json"
+          rm -f "$RUNNER_TEMP/employee-book-ci.jks"
+          rm -f "$RUNNER_TEMP/slack-success.json"
 
   notify-failure:
     name: Notify Slack of pipeline failure
@@ -266,80 +183,15 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: Prepare failure notification
-        shell: bash
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Prepare Slack failure notification
         env:
           SLACK_CHANNEL_ID: ${{ vars.SLACK_CHANNEL_ID }}
           CHECKS_RESULT: ${{ needs.analyze-and-test.result }}
           APK_RESULT: ${{ needs.build-apk.result }}
-        run: |
-          python3 - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          channel = os.environ.get("SLACK_CHANNEL_ID")
-          if not channel:
-              raise SystemExit("Missing repository variable: SLACK_CHANNEL_ID")
-
-          def slack_escape(value):
-              return (
-                  value.replace("&", "&amp;")
-                  .replace("<", "&lt;")
-                  .replace(">", "&gt;")
-              )
-
-          repository = os.environ["GITHUB_REPOSITORY"]
-          sha = os.environ["GITHUB_SHA"]
-          server = os.environ["GITHUB_SERVER_URL"]
-
-          run_url = (
-              f"{server}/{repository}/actions/runs/"
-              f"{os.environ['GITHUB_RUN_ID']}"
-          )
-          commit_url = f"{server}/{repository}/commit/{sha}"
-
-          checks = os.environ["CHECKS_RESULT"]
-          apk = os.environ["APK_RESULT"]
-
-          if checks == "failure":
-              summary = "Analysis/test job failed. APK job was skipped."
-          else:
-              summary = (
-                  "APK build/delivery job failed. "
-                  "Check the logs for the exact failing step."
-              )
-
-          message = "\n".join([
-              "❌ *Employee Book — Pipeline failed*",
-              "",
-              summary,
-              "",
-              f"*Repository:* {slack_escape(repository)}",
-              f"*Branch:* {slack_escape(os.environ['GITHUB_REF_NAME'])}",
-              f"*Event:* {slack_escape(os.environ['GITHUB_EVENT_NAME'])}",
-              f"*Triggered by:* {slack_escape(os.environ['GITHUB_ACTOR'])}",
-              f"*Run requested by:* {slack_escape(os.environ['GITHUB_TRIGGERING_ACTOR'])}",
-              f"*Commit:* <{commit_url}|{sha[:7]}>",
-              f"*Build:* {os.environ['GITHUB_RUN_NUMBER']}",
-              f"*Attempt:* {os.environ['GITHUB_RUN_ATTEMPT']}",
-              "",
-              f"*Analyze & test:* {checks}",
-              f"*APK build/delivery:* {apk}",
-              "",
-              f"<{run_url}|Open workflow and inspect failed step>",
-          ])
-
-          payload = {
-              "channel": channel,
-              "text": message,
-              "unfurl_links": False,
-              "unfurl_media": False,
-          }
-
-          output = Path(os.environ["RUNNER_TEMP"]) / "slack-failure.json"
-          output.write_text(json.dumps(payload), encoding="utf-8")
-          PY
+        run: python3 .github/scripts/android_ci.py slack-failure
 
       - name: Send failure notification to Slack
         uses: slackapi/slack-github-action@v4.0.0
