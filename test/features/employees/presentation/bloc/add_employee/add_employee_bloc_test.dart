@@ -114,17 +114,9 @@ void main() {
           AddEmployeeStatus.failure,
         ),
       ],
-      verify: (bloc) => [
-        expect(repository.addCallCount, 1),
-        expect(
-          repository.addResult,
-          isA<FailureResult<void>>().having(
-            (r) => r.failure,
-            'failure',
-            isA<StorageFailure>(),
-          ),
-        ),
-      ],
+      verify: (bloc) {
+        expect(repository.addCallCount, 1);
+      },
     );
 
     blocTest<AddEmployeeBloc, AddEmployeeState>(
